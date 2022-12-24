@@ -29,3 +29,17 @@ void UNepContainerInventoryComponent::RemoveComponentsFromEntity(FArcUniverse& U
     Universe.GetCommands().RemoveComponent<FNepItemContainer>(Entity);
     Universe.GetCommands().RemoveComponent<FNepInteractable>(Entity);
 }
+
+void UNepContainerInventoryComponent::SetIsOpened(bool bInIsOpened)
+{
+    if (bIsOpened == bInIsOpened) { return; }
+    bIsOpened = bInIsOpened;
+    if (bIsOpened)
+    {
+        OnOpenedOnClient.Broadcast();
+    }
+    else
+    {
+        OnClosedOnClient.Broadcast();
+    }
+}

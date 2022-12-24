@@ -5,11 +5,12 @@
 #include "Character/Resource/NepCharacterEvents.h"
 #include "Interaction/Resource/NepCurrentInteractableData.h"
 #include "Interaction/Resource/NepInteractionEvents.h"
+#include "Interaction/Resource/NepServerInteractionData.h"
 #include "UI/Resource/NepWidgetData.h"
 
 struct FNepInteractionSystems
 {
-	// Tick
+	// Client - Tick
 	static void DetectInteractable(
 		FArcUniverse& Universe,
 		FArcRes<FArcCoreData> CoreData,
@@ -28,16 +29,25 @@ struct FNepInteractionSystems
 		FArcRes<FNepCurrentInteractableData> CurrentInteractableData,
 		FArcRes<FNepInteractionEvents> Events,
 		FArcRes<FNepWidgetData> WidgetData);
-
-	// These specific interaction systems should probably be moved to somewhere else.
-	static void ExecuteLootCommand(
-		FArcUniverse& Universe,
-		FArcRes<FNepCurrentInteractableData> CurrentInteractableData,
-		FArcRes<FNepInteractionEvents> InteractionEvents,
-		FArcRes<FNepCharacterEvents> CharacterEvents);
 	
-	static void ExecutePossessCommands(FArcUniverse& Universe, FArcRes<FNepInteractionEvents> Events);
-	static void UpdateLights(FArcUniverse& Universe, FArcRes<FNepInteractionEvents> Events);
+	static void EvaluateLongInteractionConditionsOnClient(
+		FArcUniverse& Universe,
+		FArcRes<FArcCoreData> CoreData,
+		FArcRes<FNepServerInteractionData> ServerInteractionData,
+		FArcRes<FNepInteractionEvents> Events);
+
+	// Server - Tick
+	static void EvaluateLongInteractionConditionsOnServer(
+		FArcUniverse& Universe,
+		FArcRes<FArcCoreData> CoreData,
+		FArcRes<FNepServerInteractionData> ServerInteractionData,
+		FArcRes<FNepInteractionEvents> Events);
+	static void EndLongInteractionsOnServer(
+		FArcUniverse& Universe,
+		FArcRes<FArcCoreData> CoreData,
+		FArcRes<FNepServerInteractionData> ServerInteractionData,
+		FArcRes<FNepInteractionEvents> Events);
+
 	
 	static void UpdateInteractableIndicator(FArcRes<FNepWidgetData> WidgetData);
 	static void ClearEvents(FArcRes<FNepInteractionEvents> Events);

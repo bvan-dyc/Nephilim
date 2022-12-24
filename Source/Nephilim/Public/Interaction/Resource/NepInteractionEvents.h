@@ -11,10 +11,14 @@ struct FNepInteractionEvents
     bool bInteractionKeyPressed = false;
     TOptional<int32> SelectedInteractionIndex;
     
-    bool bLootTarget = false;
+    TArray<TWeakObjectPtr<class ANepLongInteractionProxy>> LongInteractionsToEndOnClient;
+
+    FArcEntityHandle ContainerToLoot;
+    FArcEntityHandle ContainerToStopLooting;
 
     // Server
     TArray<TPair<FArcEntityHandle, FArcEntityHandle>> PossessCommands;
     TArray<FArcEntityHandle> LightsToToggle;
     TArray<FArcEntityHandle> LightsToRandomize;
+    TArray<TWeakObjectPtr<class ANepLongInteractionProxy>> LongInteractionsToEndOnServer;
 };

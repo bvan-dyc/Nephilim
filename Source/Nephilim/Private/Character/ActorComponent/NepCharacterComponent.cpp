@@ -6,6 +6,7 @@
 #include "Character/Actor/NepCharacter.h"
 #include "Character/Resource/NepCharacterEvents.h"
 #include "Interaction/Component/NepInteractable.h"
+#include "Interaction/Component/NepInteractor.h"
 #include "Interaction/Interactions/NepPossessInteraction.h"
 #include "Net/UnrealNetwork.h"
 
@@ -20,6 +21,7 @@ void UNepCharacterComponent::AddComponentsToEntity(FArcUniverse& Universe, FArcE
     if (!Character || !ensure(Universe.IsValid(Entity))) { return; }
     
     Universe.GetCommands().AddComponent(Entity, FNepCharacterData(Data));
+    Universe.GetCommands().AddComponent(Entity, FNepInteractor());
     
     if (!Universe.HasComponent<FNepInteractable>(Entity))
     {

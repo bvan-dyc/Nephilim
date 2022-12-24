@@ -15,7 +15,7 @@ private:
 	bool bIsOn = false;
 	
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing = "OnRep_Light")
-	FColor Color;
+	FColor Color = FColor(161, 69, 23);
 
 	UPROPERTY()
 	TArray<UStaticMeshComponent*> Meshes;

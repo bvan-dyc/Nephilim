@@ -1,7 +1,8 @@
 ﻿#include "Interaction/Interactions/NepLootInteraction.h"
+#include "Interaction/Actor/NepInventoryInteractionProxy.h"
 #include "Interaction/Resource/NepInteractionEvents.h"
 
-void FNepLootInteraction::ExecuteOnClient(FArcEntityHandle& InteractingEntity, FArcEntityHandle& InteractableEntity, FNepInteractionEvents& Events) const
+TSubclassOf<ANepLongInteractionProxy> FNepLootInteraction::GetLongInteractionProxyClass()
 {
-	Events.bLootTarget = true;
+	return ANepInventoryInteractionProxy::StaticClass();
 }

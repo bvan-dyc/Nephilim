@@ -53,6 +53,7 @@ void UNepInteractableLightComponent::GetLifetimeReplicatedProps(TArray<FLifetime
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UNepInteractableLightComponent, bIsOn);
+	DOREPLIFETIME(UNepInteractableLightComponent, Color);
 }
 
 void UNepInteractableLightComponent::OnRep_Light()

@@ -15,6 +15,16 @@ void UNepECSSetup::SetupECSForGame(FArcUniverse& Universe, UWorld& World, FArcSc
 	FNepInteractionSetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
 }
 
+void UNepECSSetup::SetupECSForServer(FArcUniverse& Universe, UWorld& World, FArcScheduleBuilder& InitScheduleBuilder, FArcScheduleBuilder& TickScheduleBuilder)
+{
+	TickScheduleBuilder
+		.AddUnrealStages()
+		.AddStageAfter(TEXT("Nephilim_EventCleanUpStage"), FArcScheduleStage::LastDemotableStage);
+
+	FNepCharacterSetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
+	FNepInteractionSetup::SetupForServer(Universe, InitScheduleBuilder, TickScheduleBuilder);
+}
+
 void UNepECSSetup::SetupECSForEditor(FArcUniverse& Universe, UWorld& World, FArcScheduleBuilder& InitScheduleBuilder, FArcScheduleBuilder& TickScheduleBuilder)
 {
 	TickScheduleBuilder

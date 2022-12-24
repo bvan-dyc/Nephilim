@@ -2,13 +2,11 @@
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "Character/Actor/NepCharacter.h"
-#include "Character/Actor/NepPlayerController.h"
-#include "Character/Component/NepCharacterData.h"
 #include "GameFramework/PlayerController.h"
-#include "Interaction/ActorComponent/NepInteractableLightComponent.h"
+#include "Interaction/Actor/NepLongInteractionProxy.h"
 #include "Interaction/Component/NepInteractable.h"
+#include "Interaction/Component/NepInteractor.h"
 #include "Interaction/Resource/NepInteractionEvents.h"
-#include "Item/Component/NepItemContainer.h"
 #include "UI/Widget/NepHUDWidget.h"
 #include "UI/Widget/NepInteractionMenuWidget.h"
 
@@ -18,6 +16,7 @@ void FNepInteractionSystems::DetectInteractable(
 	FArcRes<FNepCurrentInteractableData> CurrentInteractableData,
 	FArcRes<FNepInteractionEvents> Events)
 {
+	FArcEntityHandle InteractorEntity;
 	FArcEntityHandle BestInteractableEntity = FArcEntityHandle();
 	const FNepInteractable* BestInteractable = nullptr;
 
@@ -27,6 +26,10 @@ void FNepInteractionSystems::DetectInteractable(
 		ACharacter* Character = PlayerController ? PlayerController->GetCharacter() : nullptr;
 		if (Character)
 		{
+			FArcEntityHandle* CharacterEntity = CoreData->EntitiesByActor.Find(Character);
+			if (!CharacterEntity) { return; }
+			InteractorEntity = *CharacterEntity;
+			
 			FVector CameraLocation;
 			FRotator Rotation;
 			PlayerController->GetPlayerViewPoint(CameraLocation, Rotation);
@@ -76,7 +79,7 @@ void FNepInteractionSystems::DetectInteractable(
 		{
 			const TUniquePtr<FNepInteraction>& Interaction = BestInteractable->Interactions[i];
 			
-			const bool bIsInteractionAvailable = Interaction->IsInteractionPossibleOnClient();
+			const bool bIsInteractionAvailable = Interaction->IsInteractionPossibleOnClient(Universe, InteractorEntity, BestInteractableEntity);
 			if (bIsInteractionAvailable) { ++CurrentInteractableData->NumAvailableInteractions; }
 			
 			if (CurrentInteractableData->InteractionAvailabilities[i] != bIsInteractionAvailable)
@@ -152,7 +155,8 @@ void FNepInteractionSystems::TriggerInteraction(
 	if (InteractionToExecute)
 	{
 		FNepInteractable* Interactable = Universe.GetComponent<FNepInteractable>(CurrentInteractableData->FocusedInteractable);
-		if (Interactable && Interactable->Interactions.Num() == CurrentInteractableData->InteractionAvailabilities.Num())
+		AActor* InteractableActor = Interactable ? Interactable->Actor.Get() : nullptr;
+		if (InteractableActor && Interactable->Interactions.Num() == CurrentInteractableData->InteractionAvailabilities.Num())
 		{
 			int32 InteractionIndex = [&]
 			{
@@ -176,17 +180,21 @@ void FNepInteractionSystems::TriggerInteraction(
 				APlayerController* PlayerController = World ? World->GetFirstPlayerController() : nullptr;
 				ANepCharacter* Character = PlayerController ? Cast<ANepCharacter>(PlayerController->GetCharacter()) : nullptr;
 				FArcEntityHandle* InteractingEntity = Character ? CoreData->EntitiesByActor.Find(Character) : nullptr;
+				FNepInteractor* Interactor = InteractingEntity ? Universe.GetComponent<FNepInteractor>(*InteractingEntity) : nullptr;
 
-				if (InteractingEntity)
+				if (Interactor && InteractingEntity)
 				{
+					if (TSubclassOf<ANepLongInteractionProxy> ProxyClass = Interaction->GetLongInteractionProxyClass())
+					{
+						ANepLongInteractionProxy* Proxy = World->SpawnActor<ANepLongInteractionProxy>(ProxyClass);
+						Proxy->InitializeProxy(*Character, *InteractableActor);
+						Proxy->OnLongInteractionStartedOnClient(*InteractingEntity, CurrentInteractableData->FocusedInteractable, *Events);
+						Interactor->InteractionProxies.Add(Proxy);
+					}
 					Interaction->ExecuteOnClient(*InteractingEntity, CurrentInteractableData->FocusedInteractable, *Events);
 					if (Interaction->ShouldExecuteOnServer())
 					{
-						AActor* InteractableActor = Interactable ? Interactable->Actor.Get() : nullptr;
-						if (InteractableActor)
-						{
-							Character->Server_Interact(InteractableActor, InteractionIndex);
-						}
+						Character->Server_Interact(InteractableActor, InteractionIndex);
 					}
 				}
 			}
@@ -194,61 +202,89 @@ void FNepInteractionSystems::TriggerInteraction(
 	}
 }
 
-void FNepInteractionSystems::ExecuteLootCommand(
+void FNepInteractionSystems::EvaluateLongInteractionConditionsOnClient(
 	FArcUniverse& Universe,
-	FArcRes<FNepCurrentInteractableData> CurrentInteractableData,
-	FArcRes<FNepInteractionEvents> InteractionEvents,
-	FArcRes<FNepCharacterEvents> CharacterEvents)
+	FArcRes<FArcCoreData> CoreData, FArcRes<FNepServerInteractionData> ServerInteractionData,
+	FArcRes<FNepInteractionEvents> Events)
 {
-	if (InteractionEvents->bLootTarget)
-	{
-		if (FNepItemContainer* Container = Universe.GetComponent<FNepItemContainer>(CurrentInteractableData->FocusedInteractable))
-		{
-			CharacterEvents->bToggleUI = true;
-			CharacterEvents->bShowContainer = true;
-		}
-	}
-}
-
-void FNepInteractionSystems::ExecutePossessCommands(FArcUniverse& Universe, FArcRes<FNepInteractionEvents> Events)
-{
-	for (const TPair<FArcEntityHandle, FArcEntityHandle>& PossessCommand : Events->PossessCommands)
-	{
-		FNepCharacterData* CharacterData_1 = Universe.GetComponent<FNepCharacterData>(PossessCommand.Get<0>());
-		FNepCharacterData* CharacterData_2 = Universe.GetComponent<FNepCharacterData>(PossessCommand.Get<1>());
-		
-		ANepCharacter* Character_1 = CharacterData_1 ? CharacterData_1->Character.Get() : nullptr;
-		ANepCharacter* Character_2 = CharacterData_2 ? CharacterData_2->Character.Get() : nullptr;
-
-		ANepPlayerController* PlayerController = Character_1 ? Cast<ANepPlayerController>(Character_1->GetController()) : nullptr;
-
-		if (PlayerController && Character_2)
-		{
-			PlayerController->Possess(Character_2);
-		}
-	}
-}
-
-void FNepInteractionSystems::UpdateLights(FArcUniverse& Universe, FArcRes<FNepInteractionEvents> Events)
-{
-	for (FArcEntityHandle& LightEntity : Events->LightsToToggle)
-	{
-		FNepInteractable* Interactable = Universe.GetComponent<FNepInteractable>(LightEntity);
-		AActor* LightActor = Interactable ? Interactable->Actor.Get() : nullptr;
-		if (UNepInteractableLightComponent* InteractableLight = LightActor ? LightActor->FindComponentByClass<UNepInteractableLightComponent>() : nullptr)
-		{
-			InteractableLight->ToggleLight();
-		}
-	}
+	UWorld* World = CoreData->World.Get();
+	APlayerController* PlayerController = World ? World->GetFirstPlayerController() : nullptr;
+	ANepCharacter* Character = PlayerController ? Cast<ANepCharacter>(PlayerController->GetCharacter()) : nullptr;
+	FArcEntityHandle* InteractingEntity = Character ? CoreData->EntitiesByActor.Find(Character) : nullptr;
 	
-	for (FArcEntityHandle& LightEntity : Events->LightsToRandomize)
+	if (FNepInteractor* Interactor = InteractingEntity ? Universe.GetComponent<FNepInteractor>(*InteractingEntity) : nullptr)
 	{
-		FNepInteractable* Interactable = Universe.GetComponent<FNepInteractable>(LightEntity);
-		AActor* LightActor = Interactable ? Interactable->Actor.Get() : nullptr;
-		if (UNepInteractableLightComponent* InteractableLight = LightActor ? LightActor->FindComponentByClass<UNepInteractableLightComponent>() : nullptr)
+		for (TWeakObjectPtr<ANepLongInteractionProxy>& ProxyWeak : Interactor->InteractionProxies)
 		{
-			InteractableLight->RandomizeLightColor();
+			ANepLongInteractionProxy* Proxy = ProxyWeak.Get();
+			AActor* InteractableActor = Proxy ? Proxy->InteractableActor.Get() : nullptr;
+			if (FArcEntityHandle* InteractableEntity = InteractableActor ? CoreData->EntitiesByActor.Find(InteractableActor) : nullptr)
+			{
+				if (!Proxy->EvaluateLongInteractionConditionsOnServer(Universe, *InteractingEntity, *InteractableEntity))
+				{
+					Proxy->Server_EndLongInteraction();
+					Proxy->bHasInteractionEndedOnClient = true;
+					Proxy->OnLongInteractionEndedOnClient(*InteractingEntity, *InteractableEntity, *Events);
+				}
+			}
 		}
+	}
+}
+
+void FNepInteractionSystems::EvaluateLongInteractionConditionsOnServer(
+	FArcUniverse& Universe,
+	FArcRes<FArcCoreData> CoreData,
+	FArcRes<FNepServerInteractionData> ServerInteractionData,
+	FArcRes<FNepInteractionEvents> Events)
+{
+	for (int32 i = ServerInteractionData->InteractionProxies.Num() - 1; i >= 0; --i)
+	{
+		ANepLongInteractionProxy* Proxy = ServerInteractionData->InteractionProxies[i].Get();
+		if (!ensure(Proxy))
+		{
+			ServerInteractionData->InteractionProxies.RemoveAtSwap(i);
+			continue;
+		}
+		
+		const bool bEndInteraction = [&]
+		{
+			if (!Proxy->InteractorActor || !Proxy->InteractableActor) { return true; }
+			FArcEntityHandle* InteractorEntity = CoreData->EntitiesByActor.Find(Proxy->InteractorActor.Get());
+			FArcEntityHandle* InteractableEntity = CoreData->EntitiesByActor.Find(Proxy->InteractableActor.Get());
+			if (!InteractorEntity || !InteractableEntity) { return true; }
+			
+			return !Proxy->EvaluateLongInteractionConditionsOnServer(Universe, *InteractorEntity, *InteractableEntity);
+		}();
+
+		if (bEndInteraction)
+		{
+			Events->LongInteractionsToEndOnServer.Add(Proxy);
+		}
+	}
+}
+
+void FNepInteractionSystems::EndLongInteractionsOnServer(
+	FArcUniverse& Universe,
+	FArcRes<FArcCoreData> CoreData,
+	FArcRes<FNepServerInteractionData> ServerInteractionData,
+	FArcRes<FNepInteractionEvents> Events)
+{
+	for (TWeakObjectPtr<ANepLongInteractionProxy>& ProxyWeak : Events->LongInteractionsToEndOnServer)
+	{
+		ANepLongInteractionProxy* Proxy = ProxyWeak.Get();
+		if (!Proxy) { return; }
+		FArcEntityHandle* InteractorEntity = CoreData->EntitiesByActor.Find(Proxy->InteractorActor.Get());
+		if (FNepInteractor* Interactor = InteractorEntity ? Universe.GetComponent<FNepInteractor>(*InteractorEntity) : nullptr)
+		{
+			Interactor->InteractionProxies.RemoveSingleSwap(Proxy);
+		}
+		// TODO: Remove proxies from the interactable in the future.
+		// FArcEntityHandle* InteractableEntity = CoreData->EntitiesByActor.Find(Proxy->InteractableActor.Get());
+		// if (FNepInteractable* Interactable = InteractableEntity ? Universe.GetComponent<FNepInteractable>(*InteractableEntity) : nullptr)
+		// {
+		// }
+		ServerInteractionData->InteractionProxies.RemoveSingleSwap(Proxy);
+		Proxy->Destroy();
 	}
 }
 

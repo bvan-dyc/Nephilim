@@ -11,8 +11,11 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
+#include "Interaction/Actor/NepLongInteractionProxy.h"
 #include "Interaction/Component/NepInteractable.h"
+#include "Interaction/Component/NepInteractor.h"
 #include "Interaction/Resource/NepInteractionEvents.h"
+#include "Interaction/Resource/NepServerInteractionData.h"
 
 ANepCharacter::ANepCharacter()
 {
@@ -102,20 +105,37 @@ void ANepCharacter::Server_Interact_Implementation(AActor* InteractableActor, in
 	if (!InteractableActor || FVector::DistSquared2D(GetActorLocation(), InteractableActor->GetActorLocation()) > FMath::Square(300.0f)) { return; }
 	UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
 	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
-	if (!Universe) { return; }
+	UWorld* World = GetWorld();
+	if (!Universe || !World) { return; }
 
     FArcEntityHandle* InteractingEntity = ECSSubsystem->FindEntityForActor(*this);
 	FArcEntityHandle* InteractableEntity = ECSSubsystem->FindEntityForActor(*InteractableActor);
 	if (!InteractingEntity || !InteractableEntity) { return; }
 	
+	FNepInteractor* Interactor = InteractingEntity ? Universe->GetComponent<FNepInteractor>(*InteractingEntity) : nullptr;
+
 	FNepInteractable* Interactable = InteractableEntity ? Universe->GetComponent<FNepInteractable>(*InteractableEntity) : nullptr;
 	FNepInteraction* Interaction =
 		Interactable && Interactable->Interactions.IsValidIndex(InteractionIndex) ?
 		Interactable->Interactions[InteractionIndex].Get() :
 		nullptr;
 
+	FNepServerInteractionData* ServerInteractionData = Universe->GetResource<FNepServerInteractionData>();
+	TSubclassOf<ANepLongInteractionProxy> ProxyClass = Interaction->GetLongInteractionProxyClass();
+	if (ServerInteractionData && ProxyClass)
+	{
+		ANepLongInteractionProxy* Proxy = World->SpawnActor<ANepLongInteractionProxy>(ProxyClass);
+		Proxy->InitializeProxy(*this, *InteractableActor);
+		Proxy->SetOwner(this);
+		Proxy->CopyRemoteRoleFrom(this);
+		Proxy->InteractorActor = this;
+		Proxy->InteractableActor = InteractableActor;
+		Interactor->InteractionProxies.Add(Proxy);
+		ServerInteractionData->InteractionProxies.Add(Proxy);
+	}
+
 	FNepInteractionEvents* Events = Universe->GetResource<FNepInteractionEvents>();
-	if (Interaction && Interaction->IsInteractionPossibleOnServer() && Events)
+	if (Interaction && Interaction->IsInteractionPossibleOnServer(*Universe, *InteractingEntity, *InteractableEntity) && Events)
 	{
 		Interaction->ExecuteOnServer(*InteractingEntity, *InteractableEntity, *Events);
 	}

@@ -49,7 +49,7 @@ public:
 	
 	UFUNCTION(Server, Reliable)
 	void Server_Interact(AActor* InteractableActor, int32 InteractionIndex);
-
+	
 protected:
 	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
