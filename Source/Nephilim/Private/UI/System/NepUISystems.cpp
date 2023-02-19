@@ -31,10 +31,25 @@ void FNepUISystems::InitializeUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIG
 	}
 }
 
-void FNepUISystems::ToggleUI(FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCharacterEvents> Events)
+void FNepUISystems::ToggleUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCharacterEvents> Events)
 {
 	if (!Events->bToggleUI) { return; }
 	WidgetData->bUIVisible = !WidgetData->bUIVisible;
+
+	UWorld* World = CoreData->World.Get();
+	APlayerController* PlayerController = World ? World->GetFirstPlayerController() : nullptr;
+	if (PlayerController)
+	{
+		PlayerController->SetShowMouseCursor(WidgetData->bUIVisible);
+		if (WidgetData->bUIVisible)
+		{
+			PlayerController->SetInputMode(FInputModeGameAndUI());
+		}
+		else
+		{
+			PlayerController->SetInputMode(FInputModeGameOnly());
+		}
+	}
 	
 	UNepTopBarWidget* TopBar = WidgetData->TopBarWidget.Get();
 	UNepInventoryWidget* Inventory = WidgetData->InventoryWidget.Get();

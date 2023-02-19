@@ -23,15 +23,15 @@ public:
 	UPROPERTY(ReplicatedUsing = "OnRep_Init")
 	TObjectPtr<AActor> InteractableActor;
 
-	bool bHasInteractionEndedOnClient = false;
+	int32 InteractionIndex = INDEX_NONE;
 
 public:
 
 	ANepLongInteractionProxy();
 
-	void InitializeProxy(AActor& InInteractorActor, AActor& InInteractableActor);
+	void InitializeProxy(AActor& InInteractorActor, AActor& InInteractableActor, int32 InInteractionIndex);
 
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void TornOff() override;
 	
 	virtual bool EvaluateLongInteractionConditionsOnClient(
 		const class FArcUniverse& Universe,
@@ -46,10 +46,15 @@ public:
 	virtual void OnLongInteractionStartedOnClient(class FArcEntityHandle& InteractingEntity, class FArcEntityHandle& InteractableEntity, struct FNepInteractionEvents& Events) const {}
 	virtual void OnLongInteractionEndedOnClient(class FArcEntityHandle& InteractingEntity, class FArcEntityHandle& InteractableEntity, struct FNepInteractionEvents& Events) const {}
 	
+	virtual void OnLongInteractionStartedOnServer(class FArcEntityHandle& InteractingEntity, class FArcEntityHandle& InteractableEntity, struct FNepInteractionEvents& Events) const {}
+	virtual void OnLongInteractionEndedOnServer(class FArcEntityHandle& InteractingEntity, class FArcEntityHandle& InteractableEntity, struct FNepInteractionEvents& Events) const {}
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(Server, Reliable)
 	void Server_EndLongInteraction();
+
+	class FNepInteraction* GetInteraction() const;
 
 protected:
 

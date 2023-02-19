@@ -18,9 +18,26 @@ void FNepInteractionSetup::Setup(FArcUniverse& Universe, FArcScheduleBuilder& In
 		.AddSystem(&FNepInteractionSystems::DetectInteractable)
 		.AddSystemSeq(&FNepInteractionSystems::UpdateInteractionMenu)
 		.AddSystemSeq(&FNepInteractionSystems::TriggerInteraction, FArcSystemConfig(TEXT("Interaction_TriggerInteraction")))
-		.AddSystemSeq(&FNepInventoryInteractionSystems::StartLootInteractionOnClient)
-		.AddSystemSeq(&FNepInteractionSystems::EvaluateLongInteractionConditionsOnClient)
-		.AddSystemSeq(&FNepInventoryInteractionSystems::EndLootInteractionOnClient);
+	
+		.AddSystemSet(FArcSystemSet()
+			.After(TEXT("Interaction_TriggerInteraction"))
+			.Before(TEXT("Interaction_EvaluateConditionsOnClient"))
+			
+			.AddSystem(&FNepInventoryInteractionSystems::StartLootInteractionOnClient)
+		)
+	
+		.AddSystem(&FNepInteractionSystems::EvaluateLongInteractionConditionsOnClient, FArcSystemConfig(TEXT("Interaction_EvaluateConditionsOnClient")))
+		.AddSystemSeq(&FNepInteractionSystems::EndLongInteractionsOnClient, FArcSystemConfig(TEXT("Interaction_EndLongInteractionsOnClient")))
+	
+		.AddSystemSet(FArcSystemSet()
+			.After(TEXT("Interaction_EndLongInteractionsOnClient"))
+			.Before(TEXT("Interaction_CleanUpLongInteractionsOnClient"))
+			
+			.AddSystem(&FNepInventoryInteractionSystems::EndLootInteractionOnClient)
+		)
+	
+		.AddSystem(&FNepInteractionSystems::CleanUpLongInteractionsOnClient, FArcSystemConfig(TEXT("Interaction_CleanUpLongInteractionsOnClient")));
+	
 }
 
 void FNepInteractionSetup::SetupForServer(FArcUniverse& Universe, FArcScheduleBuilder& InitScheduleBuilder, FArcScheduleBuilder& TickScheduleBuilder)
@@ -34,5 +51,6 @@ void FNepInteractionSetup::SetupForServer(FArcUniverse& Universe, FArcScheduleBu
 		.AddSystem(&FNepMiscInteractionSystems::ExecutePossessCommands)
 		.AddSystemSeq(&FNepMiscInteractionSystems::UpdateLights)
 		.AddSystemSeq(&FNepInteractionSystems::EvaluateLongInteractionConditionsOnServer)
-		.AddSystemSeq(&FNepInteractionSystems::EndLongInteractionsOnServer);
+		.AddSystemSeq(&FNepInteractionSystems::EndLongInteractionsOnServer)
+		.AddSystemSeq(&FNepInteractionSystems::CleanUpLongInteractionsOnServer);
 }

@@ -1,5 +1,6 @@
 ﻿#include "Interaction/Actor/NepLongInteractionProxy.h"
 #include "ArcECSSubsystem.h"
+#include "Interaction/Component/NepInteractable.h"
 #include "Interaction/Component/NepInteractor.h"
 #include "Interaction/Resource/NepInteractionEvents.h"
 #include "Net/UnrealNetwork.h"
@@ -11,31 +12,23 @@ ANepLongInteractionProxy::ANepLongInteractionProxy()
 	bOnlyRelevantToOwner = true;
 }
 
-void ANepLongInteractionProxy::InitializeProxy(AActor& InInteractorActor, AActor& InInteractableActor)
+void ANepLongInteractionProxy::InitializeProxy(AActor& InInteractorActor, AActor& InInteractableActor, int32 InInteractionIndex)
 {
 	InteractorActor = &InInteractorActor;
 	InteractableActor = &InInteractableActor;
+	InteractionIndex = InInteractionIndex;
 }
 
-void ANepLongInteractionProxy::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void ANepLongInteractionProxy::TornOff()
 {
-	Super::EndPlay(EndPlayReason);
-
-	if (IsNetMode(ENetMode::NM_Client) && GetLocalRole() == ENetRole::ROLE_AutonomousProxy && !bHasInteractionEndedOnClient)
+	Super::TornOff();
+	
+	UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
+	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
+	FNepInteractionEvents* Events = Universe ? Universe->GetResource<FNepInteractionEvents>() : nullptr;
+	if (Events)
 	{
-		UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
-		FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
-		FArcCoreData* CoreData = Universe ? Universe->GetResource<FArcCoreData>() : nullptr;
-		FNepInteractionEvents* Events = Universe ? Universe->GetResource<FNepInteractionEvents>() : nullptr;
-		if (CoreData && Events)
-		{
-			FArcEntityHandle* InteractorEntity = InteractorActor ? CoreData->EntitiesByActor.Find(InteractableActor) : nullptr;
-			FArcEntityHandle* InteractableEntity = InteractableActor ? CoreData->EntitiesByActor.Find(InteractableActor) : nullptr;
-			if (InteractorEntity && InteractableEntity)
-			{
-				OnLongInteractionEndedOnClient(*InteractorEntity, *InteractableEntity, *Events);
-			}
-		}
+		Events->LongInteractionsToEndOnClient.Add(this);
 	}
 }
 
@@ -57,11 +50,20 @@ void ANepLongInteractionProxy::Server_EndLongInteraction_Implementation()
 	}
 }
 
+FNepInteraction* ANepLongInteractionProxy::GetInteraction() const
+{
+	UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
+	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
+	FArcCoreData* CoreData = Universe ? Universe->GetResource<FArcCoreData>() : nullptr;
+	FArcEntityHandle* InteractableEntity = CoreData && InteractableActor ? CoreData->EntitiesByActor.Find(InteractableActor) : nullptr;
+	FNepInteractable* Interactable = InteractableEntity ? Universe->GetComponent<FNepInteractable>(*InteractableEntity) : nullptr;
+	return Interactable && Interactable->Interactions.IsValidIndex(InteractionIndex) ? Interactable->Interactions[InteractionIndex].Get() : nullptr;
+}
+
 void ANepLongInteractionProxy::OnRep_Init()
 {
 	if (!InteractorActor || !InteractableActor) { return; }
 	
-	UWorld* World = GetWorld();
 	UArcECSSubsystem* ECSSubsystem = UArcECSSubsystem::Get(this);
 	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
 	if (!Universe) { return; }
@@ -80,11 +82,12 @@ void ANepLongInteractionProxy::OnRep_Init()
 			break;
 		}
 	}
+	Interactor->InteractionProxies.Add(this);
 
 	if (ClientOnlyProxy)
 	{
+		InteractionIndex = ClientOnlyProxy->InteractionIndex;
 		OnReplacedByServer(ClientOnlyProxy);
 		ClientOnlyProxy->Destroy();
 	}
 }
-

@@ -35,14 +35,31 @@ struct FNepInteractionSystems
 		FArcRes<FArcCoreData> CoreData,
 		FArcRes<FNepServerInteractionData> ServerInteractionData,
 		FArcRes<FNepInteractionEvents> Events);
+	
+	static void EndLongInteractionsOnClient(
+		FArcUniverse& Universe,
+		FArcRes<FArcCoreData> CoreData,
+		FArcRes<FNepInteractionEvents> Events);
+	
+	static void CleanUpLongInteractionsOnClient(
+		FArcUniverse& Universe,
+		FArcRes<FArcCoreData> CoreData,
+		FArcRes<FNepInteractionEvents> Events);
 
+	
 	// Server - Tick
 	static void EvaluateLongInteractionConditionsOnServer(
 		FArcUniverse& Universe,
 		FArcRes<FArcCoreData> CoreData,
 		FArcRes<FNepServerInteractionData> ServerInteractionData,
 		FArcRes<FNepInteractionEvents> Events);
+	
 	static void EndLongInteractionsOnServer(
+		FArcUniverse& Universe,
+		FArcRes<FArcCoreData> CoreData,
+		FArcRes<FNepInteractionEvents> Events);
+	
+	static void CleanUpLongInteractionsOnServer(
 		FArcUniverse& Universe,
 		FArcRes<FArcCoreData> CoreData,
 		FArcRes<FNepServerInteractionData> ServerInteractionData,
