@@ -33,7 +33,6 @@ struct FNepInteractionSystems
 	static void EvaluateLongInteractionConditionsOnClient(
 		FArcUniverse& Universe,
 		FArcRes<FArcCoreData> CoreData,
-		FArcRes<FNepServerInteractionData> ServerInteractionData,
 		FArcRes<FNepInteractionEvents> Events);
 	
 	static void EndLongInteractionsOnClient(

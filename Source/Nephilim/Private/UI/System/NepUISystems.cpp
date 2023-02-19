@@ -31,10 +31,16 @@ void FNepUISystems::InitializeUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIG
 	}
 }
 
-void FNepUISystems::ToggleUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCharacterEvents> Events)
+void FNepUISystems::HandleToggleUI(FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCharacterEvents> Events)
 {
 	if (!Events->bToggleUI) { return; }
-	WidgetData->bUIVisible = !WidgetData->bUIVisible;
+	Events->SetUIVisibilityCommand = !WidgetData->bUIVisible;
+}
+
+void FNepUISystems::SetUIVisibility(FArcRes<FArcCoreData> CoreData, FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCharacterEvents> Events)
+{
+	if (!Events->SetUIVisibilityCommand) { return; }
+	WidgetData->bUIVisible = *Events->SetUIVisibilityCommand;
 
 	UWorld* World = CoreData->World.Get();
 	APlayerController* PlayerController = World ? World->GetFirstPlayerController() : nullptr;

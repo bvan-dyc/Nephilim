@@ -11,6 +11,7 @@ class ANepInventoryInteractionProxy : public ANepLongInteractionProxy
 
 public:
 
+	virtual bool EvaluateLongInteractionConditionsOnClient(const FArcUniverse& Universe, FArcEntityHandle& InteractingEntity, FArcEntityHandle& InteractableEntity) const override;
 	virtual bool EvaluateLongInteractionConditionsOnServer(const FArcUniverse& Universe, FArcEntityHandle& InteractingEntity, FArcEntityHandle& InteractableEntity) const override;
 
 	virtual void OnLongInteractionStartedOnClient(FArcEntityHandle& InteractingEntity, FArcEntityHandle& InteractableEntity, FNepInteractionEvents& Events) const override;

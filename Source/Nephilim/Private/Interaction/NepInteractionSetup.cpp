@@ -30,6 +30,7 @@ void FNepInteractionSetup::Setup(FArcUniverse& Universe, FArcScheduleBuilder& In
 		.AddSystemSeq(&FNepInteractionSystems::EndLongInteractionsOnClient, FArcSystemConfig(TEXT("Interaction_EndLongInteractionsOnClient")))
 	
 		.AddSystemSet(FArcSystemSet()
+			.WithLabel(TEXT("Interaction_CustomEndLongInteractionsOnClient_Set"))
 			.After(TEXT("Interaction_EndLongInteractionsOnClient"))
 			.Before(TEXT("Interaction_CleanUpLongInteractionsOnClient"))
 			

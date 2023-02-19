@@ -215,7 +215,7 @@ void FNepInteractionSystems::TriggerInteraction(
 
 void FNepInteractionSystems::EvaluateLongInteractionConditionsOnClient(
 	FArcUniverse& Universe,
-	FArcRes<FArcCoreData> CoreData, FArcRes<FNepServerInteractionData> ServerInteractionData,
+	FArcRes<FArcCoreData> CoreData,
 	FArcRes<FNepInteractionEvents> Events)
 {
 	UWorld* World = CoreData->World.Get();
