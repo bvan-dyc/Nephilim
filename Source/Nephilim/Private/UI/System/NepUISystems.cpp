@@ -7,6 +7,7 @@
 #include "UI/Widget/NepHUDWidget.h"
 #include "UI/Widget/NepInventoryWidget.h"
 #include "UI/Widget/NepTopBarWidget.h"
+#include "UI/Widget/Dialogue/NepConversationWidget.h"
 
 void FNepUISystems::InitializeUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIGlobals> UIGlobals, FArcRes<FNepWidgetData> WidgetData)
 {
@@ -40,6 +41,8 @@ void FNepUISystems::ToggleUI(FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCha
 	UNepInventoryWidget* Inventory = WidgetData->InventoryWidget.Get();
 	UNepEquipmentWidget* Equipment = WidgetData->EquipmentWidget.Get();
 	UNepContainerInventoryWidget* Container = WidgetData->ContainerInventoryWidget.Get();
+	UNepConversationWidget* ConversationPanel = WidgetData->ConversationWidget.Get();
+	UNepCutsceneConversationWidget* CutscenePanel = WidgetData->CutsceneConversationWidget.Get();
 	
 	if (TopBar && Inventory && Equipment && Container)
 	{

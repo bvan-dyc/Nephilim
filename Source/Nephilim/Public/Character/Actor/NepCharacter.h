@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Narrative/DataAssets/NepConversationDataAsset.h"
 #include "NepCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -19,6 +20,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	UPROPERTY(EditAnywhere)
+	const class UNepConversationDataAsset* CharacterConversation;
+	
 protected:
 
 	UPROPERTY(EditAnywhere)

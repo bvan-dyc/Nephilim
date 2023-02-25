@@ -8,6 +8,7 @@
 #include "Interaction/Component/NepInteractable.h"
 #include "Interaction/Component/NepInteractor.h"
 #include "Interaction/Interactions/NepPossessInteraction.h"
+#include "Interaction/Interactions/NepTalkInteraction.h"
 #include "Net/UnrealNetwork.h"
 
 UNepCharacterComponent::UNepCharacterComponent()
@@ -28,6 +29,7 @@ void UNepCharacterComponent::AddComponentsToEntity(FArcUniverse& Universe, FArcE
         Universe.AddComponent(Entity, FNepInteractable { Character });
     }
     FNepInteractable& Interactable = *Universe.GetComponent<FNepInteractable>(Entity);
+    Interactable.Interactions.Add(MakeUnique<FNepTalkInteraction>());
     Interactable.Interactions.Add(MakeUnique<FNepPossessInteraction>());
     
     if (FNepCharacterEvents* Events = Universe.GetResource<FNepCharacterEvents>())

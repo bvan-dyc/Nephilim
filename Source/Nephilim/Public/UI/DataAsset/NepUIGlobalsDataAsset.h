@@ -14,5 +14,4 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, meta = (ShowOnlyInnerProperties))
 	FNepUIGlobals UIGlobals;
-	
 };

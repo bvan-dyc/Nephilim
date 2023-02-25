@@ -16,6 +16,8 @@
 #include "Interaction/Component/NepInteractor.h"
 #include "Interaction/Resource/NepInteractionEvents.h"
 #include "Interaction/Resource/NepServerInteractionData.h"
+#include "Narrative/Resource/NepNarrative.h"
+#include "Narrative/Resource/NepNarrativeEvents.h"
 
 ANepCharacter::ANepCharacter()
 {
@@ -94,7 +96,19 @@ void ANepCharacter::Interact()
 {
 	UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
 	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
-	if (FNepInteractionEvents* Events = Universe ? Universe->GetResource<FNepInteractionEvents>() : nullptr)
+	if (!Universe) { return; }
+
+	const FNepNarrative* Narrative = Universe->GetResource<FNepNarrative>();
+	if (!Narrative) { return; }
+
+	if (Narrative->CutsceneFlowPlayer.bIsPlaying())
+	{
+		if (FNepNarrativeEvents* NarrativeEvents = Universe->GetResource<FNepNarrativeEvents>())
+		{
+			NarrativeEvents->bContinueConversationKeyPressed = true;
+		}
+	}
+	else if (FNepInteractionEvents* Events = Universe ? Universe->GetResource<FNepInteractionEvents>() : nullptr)
 	{
 		Events->bInteractionKeyPressed = true;
 	}

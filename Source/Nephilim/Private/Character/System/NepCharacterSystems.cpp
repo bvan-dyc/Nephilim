@@ -21,6 +21,7 @@ void FNepCharacterSystems::OnCharacterCreated(FArcUniverse& Universe, FArcRes<FN
 		if (Character && Data)
 		{
 			Data->Character = Character;
+			Data->CharacterConversation = Character->CharacterConversation;
 			Events->CharacterMeshesChangedEvents.Add(Entity);
 		}
 	}

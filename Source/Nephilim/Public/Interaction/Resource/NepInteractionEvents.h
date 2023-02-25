@@ -18,6 +18,7 @@ struct FNepInteractionEvents
 
     // Server
     TArray<TPair<FArcEntityHandle, FArcEntityHandle>> PossessCommands;
+    TArray<TPair<FArcEntityHandle, FArcEntityHandle>> TalkCommands;
     TArray<FArcEntityHandle> LightsToToggle;
     TArray<FArcEntityHandle> LightsToRandomize;
     TArray<TWeakObjectPtr<class ANepLongInteractionProxy>> LongInteractionsToEndOnServer;
