@@ -7,6 +7,9 @@ class FNepLootInteraction : public FNepInteraction
 public:
 	virtual FText GetInteractionName() const override { return NSLOCTEXT("Interaction", "InteractionLoot", "Loot"); }
 	virtual bool ShouldExecuteOnServer() const override { return true; }
+	
+	virtual bool RequiresAttention() const override { return true; }
+	virtual bool RequiresBody() const override { return true; }
 
 	virtual TSubclassOf<class ANepLongInteractionProxy> GetLongInteractionProxyClass() override;
 };

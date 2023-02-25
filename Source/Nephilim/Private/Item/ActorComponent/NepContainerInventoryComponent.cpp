@@ -7,9 +7,6 @@
 
 void UNepContainerInventoryComponent::AddComponentsToEntity(FArcUniverse& Universe, FArcEntityHandle& Entity)
 {
-    //ANepCharacter* Character = Cast<ANepCharacter>(GetOwner());
-    //if (!Character || !ensure(World.IsValid(Entity))) { return; }
-    
     Universe.GetCommands().AddComponent(Entity, FNepItemContainer { Inventory });
     if (!Universe.HasComponent<FNepInteractable>(Entity))
     {
@@ -17,11 +14,6 @@ void UNepContainerInventoryComponent::AddComponentsToEntity(FArcUniverse& Univer
     }
     FNepInteractable& Interactable = *Universe.GetComponent<FNepInteractable>(Entity);
     Interactable.Interactions.Add(MakeUnique<FNepLootInteraction>());
-    
-    /*if (FNepCharacterEvents* Events = World.GetResource<FNepCharacterEvents>())
-    {
-        Events->CharacterCreatedEvents.Emplace(Entity, Character);
-    }*/
 }
 
 void UNepContainerInventoryComponent::RemoveComponentsFromEntity(FArcUniverse& Universe, FArcEntityHandle& Entity)

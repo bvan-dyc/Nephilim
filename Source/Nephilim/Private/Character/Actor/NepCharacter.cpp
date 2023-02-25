@@ -122,37 +122,55 @@ void ANepCharacter::Server_Interact_Implementation(AActor* InteractableActor, in
 	UWorld* World = GetWorld();
 	if (!Universe || !World) { return; }
 
-    FArcEntityHandle* InteractingEntity = ECSSubsystem->FindEntityForActor(*this);
+    FArcEntityHandle* InteractorEntity = ECSSubsystem->FindEntityForActor(*this);
 	FArcEntityHandle* InteractableEntity = ECSSubsystem->FindEntityForActor(*InteractableActor);
-	if (!InteractingEntity || !InteractableEntity) { return; }
+	FNepInteractionEvents* Events = Universe->GetResource<FNepInteractionEvents>();
+	if (!InteractorEntity || !InteractableEntity || !Events) { return; }
 	
-	FNepInteractor* Interactor = InteractingEntity ? Universe->GetComponent<FNepInteractor>(*InteractingEntity) : nullptr;
+	FNepInteractor* Interactor = InteractorEntity ? Universe->GetComponent<FNepInteractor>(*InteractorEntity) : nullptr;
 
 	FNepInteractable* Interactable = InteractableEntity ? Universe->GetComponent<FNepInteractable>(*InteractableEntity) : nullptr;
 	FNepInteraction* Interaction =
 		Interactable && Interactable->Interactions.IsValidIndex(InteractionIndex) ?
 		Interactable->Interactions[InteractionIndex].Get() :
 		nullptr;
+	if (!Interaction) { return; }
 
 	FNepServerInteractionData* ServerInteractionData = Universe->GetResource<FNepServerInteractionData>();
 	TSubclassOf<ANepLongInteractionProxy> ProxyClass = Interaction->GetLongInteractionProxyClass();
 	if (ServerInteractionData && ProxyClass)
 	{
 		ANepLongInteractionProxy* Proxy = World->SpawnActor<ANepLongInteractionProxy>(ProxyClass);
-		Proxy->InitializeProxy(*this, *InteractableActor);
+		Proxy->InitializeProxy(*this, *InteractableActor, InteractionIndex);
 		Proxy->SetOwner(this);
 		Proxy->CopyRemoteRoleFrom(this);
 		Proxy->InteractorActor = this;
 		Proxy->InteractableActor = InteractableActor;
 		Interactor->InteractionProxies.Add(Proxy);
 		ServerInteractionData->InteractionProxies.Add(Proxy);
+		
+		if (Interaction->RequiresAttention())
+		{
+			Interactor->bIsAttentionOccupied = true;
+		}
+		if (Interaction->RequiresBody())
+		{
+			Interactor->bIsBodyOccupied = true;
+		}
+
+		Proxy->OnLongInteractionStartedOnServer(*InteractorEntity, *InteractableEntity, *Events);
 	}
 
-	FNepInteractionEvents* Events = Universe->GetResource<FNepInteractionEvents>();
-	if (Interaction && Interaction->IsInteractionPossibleOnServer(*Universe, *InteractingEntity, *InteractableEntity) && Events)
+	const bool bIsInteractionAvailable =
+		Interaction->IsInteractionPossibleOnServer(*Universe, *InteractorEntity, *InteractableEntity) &&
+		(!Interaction->RequiresAttention() || !FNepInteractor::IsAttentionOccupied(*Universe, *InteractorEntity)) &&
+		(!Interaction->RequiresBody() || !FNepInteractor::IsBodyOccupied(*Universe, *InteractorEntity));
+
+	if (bIsInteractionAvailable)
 	{
-		Interaction->ExecuteOnServer(*InteractingEntity, *InteractableEntity, *Events);
+		Interaction->ExecuteOnServer(*InteractorEntity, *InteractableEntity, *Events);
 	}
+	// TODO: Destroy InteractionProxy on client if interaction was not possible on server.
 }
 
 void ANepCharacter::SelectInteraction(int32 Index)

@@ -13,5 +13,6 @@ void FNepUISetup::Setup(FArcUniverse& Universe, FArcScheduleBuilder& InitSchedul
 	InitScheduleBuilder.AddSystem(&FNepUISystems::InitializeUI);
 	
 	TickScheduleBuilder
-		.AddSystem(&FNepUISystems::ToggleUI, FArcSystemConfig().After(TEXT("Interaction_TriggerInteraction")));
+		.AddSystem(&FNepUISystems::HandleToggleUI, FArcSystemConfig().Before(TEXT("Interaction_TriggerInteraction")))
+		.AddSystemSeq(&FNepUISystems::SetUIVisibility, FArcSystemConfig().After(TEXT("Interaction_CustomEndLongInteractionsOnClient_Set")));
 }

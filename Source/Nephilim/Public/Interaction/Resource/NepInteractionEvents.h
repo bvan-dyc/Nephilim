@@ -12,7 +12,7 @@ struct FNepInteractionEvents
     TOptional<int32> SelectedInteractionIndex;
     
     TArray<TWeakObjectPtr<class ANepLongInteractionProxy>> LongInteractionsToEndOnClient;
-
+    
     FArcEntityHandle ContainerToLoot;
     FArcEntityHandle ContainerToStopLooting;
 

@@ -79,7 +79,10 @@ void FNepInteractionSystems::DetectInteractable(
 		{
 			const TUniquePtr<FNepInteraction>& Interaction = BestInteractable->Interactions[i];
 			
-			const bool bIsInteractionAvailable = Interaction->IsInteractionPossibleOnClient(Universe, InteractorEntity, BestInteractableEntity);
+			const bool bIsInteractionAvailable =
+				Interaction->IsInteractionPossibleOnClient(Universe, InteractorEntity, BestInteractableEntity) &&
+				(!Interaction->RequiresAttention() || !FNepInteractor::IsAttentionOccupied(Universe, InteractorEntity)) &&
+				(!Interaction->RequiresBody() || !FNepInteractor::IsBodyOccupied(Universe, InteractorEntity));
 			if (bIsInteractionAvailable) { ++CurrentInteractableData->NumAvailableInteractions; }
 			
 			if (CurrentInteractableData->InteractionAvailabilities[i] != bIsInteractionAvailable)
@@ -187,9 +190,17 @@ void FNepInteractionSystems::TriggerInteraction(
 					if (TSubclassOf<ANepLongInteractionProxy> ProxyClass = Interaction->GetLongInteractionProxyClass())
 					{
 						ANepLongInteractionProxy* Proxy = World->SpawnActor<ANepLongInteractionProxy>(ProxyClass);
-						Proxy->InitializeProxy(*Character, *InteractableActor);
+						Proxy->InitializeProxy(*Character, *InteractableActor, InteractionIndex);
 						Proxy->OnLongInteractionStartedOnClient(*InteractingEntity, CurrentInteractableData->FocusedInteractable, *Events);
 						Interactor->InteractionProxies.Add(Proxy);
+						if (Interaction->RequiresAttention())
+						{
+							Interactor->bIsAttentionOccupied = true;
+						}
+						if (Interaction->RequiresBody())
+						{
+							Interactor->bIsBodyOccupied = true;
+						}
 					}
 					Interaction->ExecuteOnClient(*InteractingEntity, CurrentInteractableData->FocusedInteractable, *Events);
 					if (Interaction->ShouldExecuteOnServer())
@@ -204,7 +215,7 @@ void FNepInteractionSystems::TriggerInteraction(
 
 void FNepInteractionSystems::EvaluateLongInteractionConditionsOnClient(
 	FArcUniverse& Universe,
-	FArcRes<FArcCoreData> CoreData, FArcRes<FNepServerInteractionData> ServerInteractionData,
+	FArcRes<FArcCoreData> CoreData,
 	FArcRes<FNepInteractionEvents> Events)
 {
 	UWorld* World = CoreData->World.Get();
@@ -220,14 +231,68 @@ void FNepInteractionSystems::EvaluateLongInteractionConditionsOnClient(
 			AActor* InteractableActor = Proxy ? Proxy->InteractableActor.Get() : nullptr;
 			if (FArcEntityHandle* InteractableEntity = InteractableActor ? CoreData->EntitiesByActor.Find(InteractableActor) : nullptr)
 			{
-				if (!Proxy->EvaluateLongInteractionConditionsOnServer(Universe, *InteractingEntity, *InteractableEntity))
+				if (!Proxy->EvaluateLongInteractionConditionsOnClient(Universe, *InteractingEntity, *InteractableEntity))
 				{
 					Proxy->Server_EndLongInteraction();
-					Proxy->bHasInteractionEndedOnClient = true;
-					Proxy->OnLongInteractionEndedOnClient(*InteractingEntity, *InteractableEntity, *Events);
+					Events->LongInteractionsToEndOnClient.Add(Proxy);
 				}
 			}
 		}
+	}
+}
+
+void FNepInteractionSystems::EndLongInteractionsOnClient(
+	FArcUniverse& Universe,
+	FArcRes<FArcCoreData> CoreData,
+	FArcRes<FNepInteractionEvents> Events)
+{
+	for (TWeakObjectPtr<ANepLongInteractionProxy>& ProxyWeak : Events->LongInteractionsToEndOnClient)
+	{
+		ANepLongInteractionProxy* Proxy = ProxyWeak.Get();
+		if (!Proxy) { return; }
+		FArcEntityHandle* InteractorEntity = CoreData->EntitiesByActor.Find(Proxy->InteractorActor.Get());
+		FArcEntityHandle* InteractableEntity = CoreData->EntitiesByActor.Find(Proxy->InteractableActor.Get());
+		if (InteractorEntity && InteractableEntity)
+		{
+			Proxy->OnLongInteractionEndedOnClient(*InteractorEntity, *InteractableEntity, *Events);
+			
+			FNepInteraction* Interaction = Proxy->GetInteraction();
+			FNepInteractor* Interactor = Universe.GetComponent<FNepInteractor>(*InteractorEntity);
+			if (Interaction && Interactor)
+			{
+				if (Interaction->RequiresAttention())
+				{
+					Interactor->bIsAttentionOccupied = false;
+				}
+				if (Interaction->RequiresBody())
+				{
+					Interactor->bIsBodyOccupied = false;
+				}
+			}
+		}
+	}
+}
+
+void FNepInteractionSystems::CleanUpLongInteractionsOnClient(
+	FArcUniverse& Universe,
+	FArcRes<FArcCoreData> CoreData,
+	FArcRes<FNepInteractionEvents> Events)
+{
+	for (TWeakObjectPtr<ANepLongInteractionProxy>& ProxyWeak : Events->LongInteractionsToEndOnClient)
+	{
+		ANepLongInteractionProxy* Proxy = ProxyWeak.Get();
+		if (!Proxy) { return; }
+		FArcEntityHandle* InteractorEntity = CoreData->EntitiesByActor.Find(Proxy->InteractorActor.Get());
+		if (FNepInteractor* Interactor = InteractorEntity ? Universe.GetComponent<FNepInteractor>(*InteractorEntity) : nullptr)
+		{
+			Interactor->InteractionProxies.RemoveSingleSwap(Proxy);
+		}
+		// TODO: Remove proxies from the interactable in the future.
+		// FArcEntityHandle* InteractableEntity = CoreData->EntitiesByActor.Find(Proxy->InteractableActor.Get());
+		// if (FNepInteractable* Interactable = InteractableEntity ? Universe.GetComponent<FNepInteractable>(*InteractableEntity) : nullptr)
+		// {
+		// }
+		Proxy->Destroy();
 	}
 }
 
@@ -266,6 +331,38 @@ void FNepInteractionSystems::EvaluateLongInteractionConditionsOnServer(
 void FNepInteractionSystems::EndLongInteractionsOnServer(
 	FArcUniverse& Universe,
 	FArcRes<FArcCoreData> CoreData,
+	FArcRes<FNepInteractionEvents> Events)
+{
+	for (TWeakObjectPtr<ANepLongInteractionProxy>& ProxyWeak : Events->LongInteractionsToEndOnServer)
+	{
+		ANepLongInteractionProxy* Proxy = ProxyWeak.Get();
+		if (!Proxy) { return; }
+		FArcEntityHandle* InteractorEntity = CoreData->EntitiesByActor.Find(Proxy->InteractorActor.Get());
+		FArcEntityHandle* InteractableEntity = CoreData->EntitiesByActor.Find(Proxy->InteractableActor.Get());
+		if (InteractorEntity && InteractableEntity)
+		{
+			Proxy->OnLongInteractionEndedOnServer(*InteractorEntity, *InteractableEntity, *Events);
+			
+			FNepInteraction* Interaction = Proxy->GetInteraction();
+			FNepInteractor* Interactor = Universe.GetComponent<FNepInteractor>(*InteractableEntity);
+			if (Interaction && Interactor)
+			{
+				if (Interaction->RequiresAttention())
+				{
+					Interactor->bIsAttentionOccupied = false;
+				}
+				if (Interaction->RequiresBody())
+				{
+					Interactor->bIsBodyOccupied = false;
+				}
+			}
+		}
+	}
+}
+
+void FNepInteractionSystems::CleanUpLongInteractionsOnServer(
+	FArcUniverse& Universe,
+	FArcRes<FArcCoreData> CoreData,
 	FArcRes<FNepServerInteractionData> ServerInteractionData,
 	FArcRes<FNepInteractionEvents> Events)
 {
@@ -284,7 +381,19 @@ void FNepInteractionSystems::EndLongInteractionsOnServer(
 		// {
 		// }
 		ServerInteractionData->InteractionProxies.RemoveSingleSwap(Proxy);
-		Proxy->Destroy();
+		Proxy->TearOff();
+
+		// Very hacky, but for some reason TornOff won't be called on the Proxy if it is destroyed immediately.
+		Proxy->ForceNetUpdate();
+		if (UWorld* World = Proxy->GetWorld())
+		{
+			FTimerHandle TimerHandle;
+			FTimerDelegate DestroyDelegate = FTimerDelegate::CreateWeakLambda(Proxy, [&](AActor* ActorToDestroy)
+			{
+				ActorToDestroy->Destroy();
+			}, Proxy);
+			World->GetTimerManager().SetTimer(TimerHandle, DestroyDelegate, 10.0f, false);
+		}
 	}
 }
 

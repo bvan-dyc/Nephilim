@@ -21,8 +21,8 @@ void FNepInventoryInteractionSystems::StartLootInteractionOnClient(
 				ContainerComponent->SetIsOpened(true);
 			}
 			
-			CharacterEvents->bToggleUI = true;
 			CharacterEvents->bShowContainer = true;
+			CharacterEvents->SetUIVisibilityCommand = true;
 		}
 	}
 }
@@ -44,7 +44,7 @@ void FNepInventoryInteractionSystems::EndLootInteractionOnClient(
 				ContainerComponent->SetIsOpened(false);
 			}
 			
-			CharacterEvents->bToggleUI = true;
+			CharacterEvents->SetUIVisibilityCommand = false;
 		}
 	}
 }
