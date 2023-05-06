@@ -23,7 +23,10 @@ public:
 	UPROPERTY(ReplicatedUsing = "OnRep_Init")
 	TObjectPtr<AActor> InteractableActor;
 
+	UPROPERTY(ReplicatedUsing = "OnRep_Init")
 	int32 InteractionIndex = INDEX_NONE;
+
+	bool bHasInteractionEndedOnClient = false;
 
 public:
 
@@ -51,14 +54,17 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(Server, Reliable)
-	void Server_EndLongInteraction();
-
+	void EndLongInteractionOnClient();
+	
 	class FNepInteraction* GetInteraction() const;
 
 protected:
+	
+	UFUNCTION(Server, Reliable)
+	void Server_EndLongInteraction();
 
 	virtual void OnReplacedByServer(ANepLongInteractionProxy* ClientOnlyProxy) {}
+	bool IsClientOnlyProxy() const;
 
 private:
 

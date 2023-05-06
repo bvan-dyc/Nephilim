@@ -5,12 +5,10 @@
 struct FNepWidgetData
 {
 public:
+
+    TSharedRef<struct FNepWidgetUpdateManager> WidgetUpdateManager;
     
     TWeakObjectPtr<class UNepHUDWidget> HUDWidget;
-    TWeakObjectPtr<class UNepTopBarWidget> TopBarWidget;
-    TWeakObjectPtr<class UNepInventoryWidget> InventoryWidget;
-    TWeakObjectPtr<class UNepEquipmentWidget> EquipmentWidget;
-    TWeakObjectPtr<class UNepContainerInventoryWidget> ContainerInventoryWidget;
     TWeakObjectPtr<class UNepInteractionMenuWidget> InteractionMenuWidget;
     TWeakObjectPtr<class UNepConversationWidget> ConversationWidget;
     TWeakObjectPtr<class UNepCutsceneConversationWidget> CutsceneConversationWidget;
@@ -18,5 +16,8 @@ public:
     bool bUIVisible = false;
 
 public:
+
+    FNepWidgetData();
+    
     static FNepWidgetData* Get(const UObject* context);
 };

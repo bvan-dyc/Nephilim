@@ -1,5 +1,33 @@
 #include "UI/Widget/NepTopBarWidget.h"
-#include "UI/Resource/NepWidgetData.h"
+#include "UI/NepUIEvents.h"
+#include "UI/NepWidgetUpdater.h"
+
+void UNepTopBarWidget::NativeOnInitialized()
+{
+    Super::NativeOnInitialized();
+    SetRenderOpacity(0.0f);
+    
+    WidgetUpdater = FNepWidgetUpdater::Create(GetWorld(), FSimpleDelegate::CreateUObject(this, &UNepTopBarWidget::Update));
+    if (WidgetUpdater)
+    {
+        WidgetUpdater->ListenToUpdateEvent<FNepUIEvent_ShowUI>();
+        WidgetUpdater->ListenToUpdateEvent<FNepUIEvent_HideUI>();
+    }
+}
+
+void UNepTopBarWidget::Update()
+{
+    if (!WidgetUpdater) { return; }
+
+    if (WidgetUpdater->GetUpdateEvent<FNepUIEvent_ShowUI>() && !bIsVisible)
+    {
+        FadeIn();
+    }
+    if (WidgetUpdater->GetUpdateEvent<FNepUIEvent_HideUI>() && bIsVisible)
+    {
+        FadeOut();
+    }
+}
 
 void UNepTopBarWidget::FadeIn()
 {
@@ -7,6 +35,7 @@ void UNepTopBarWidget::FadeIn()
     {
         PlayAnimation(FadeInAnimation);
     }
+    bIsVisible = true;
 }
 
 void UNepTopBarWidget::FadeOut()
@@ -15,20 +44,5 @@ void UNepTopBarWidget::FadeOut()
     {
         PlayAnimation(FadeOutAnimation);
     }
-}
-
-void UNepTopBarWidget::NativeOnInitialized()
-{
-    Super::NativeOnInitialized();
-    SetRenderOpacity(0.0f);
-}
-
-void UNepTopBarWidget::NativeConstruct()
-{
-    Super::NativeConstruct();
-    
-    if (FNepWidgetData* WidgetData = FNepWidgetData::Get(this))
-    {
-        WidgetData->TopBarWidget = this;
-    }
+    bIsVisible = false;
 }

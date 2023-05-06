@@ -53,6 +53,8 @@ public:
 	
 	UFUNCTION(Server, Reliable)
 	void Server_Interact(AActor* InteractableActor, int32 InteractionIndex);
+
+	static ANepCharacter* GetLocalCharacter(const UObject* Context);
 	
 protected:
 	

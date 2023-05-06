@@ -20,6 +20,7 @@ void FNepInteractionSetup::Setup(FArcUniverse& Universe, FArcScheduleBuilder& In
 		.AddSystemSeq(&FNepInteractionSystems::TriggerInteraction, FArcSystemConfig(TEXT("Interaction_TriggerInteraction")))
 	
 		.AddSystemSet(FArcSystemSet()
+			.WithLabel(TEXT("InteractionSet_StartInteractions"))
 			.After(TEXT("Interaction_TriggerInteraction"))
 			.Before(TEXT("Interaction_EvaluateConditionsOnClient"))
 			

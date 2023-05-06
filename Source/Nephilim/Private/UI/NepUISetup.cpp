@@ -10,9 +10,19 @@ void FNepUISetup::Setup(FArcUniverse& Universe, FArcScheduleBuilder& InitSchedul
 	Universe.AddResource(FNepUIGlobals());
 	Universe.AddResource(FNepWidgetData());
 	
-	InitScheduleBuilder.AddSystem(&FNepUISystems::InitializeUI);
+	InitScheduleBuilder
+		.AddSystem(&FNepUISystems::InitializeGlobals)
+		.AddSystemSeq(&FNepUISystems::CreateHUD);
 	
 	TickScheduleBuilder
+		.AddSystemToStage(FArcScheduleStage::PostUpdateWorkStage, &FNepUISystems::UpdateWidgets)
 		.AddSystem(&FNepUISystems::HandleToggleUI, FArcSystemConfig().Before(TEXT("Interaction_TriggerInteraction")))
 		.AddSystemSeq(&FNepUISystems::SetUIVisibility, FArcSystemConfig().After(TEXT("Interaction_CustomEndLongInteractionsOnClient_Set")));
+}
+
+void FNepUISetup::SetupForEditor(FArcUniverse& Universe, FArcScheduleBuilder& InitScheduleBuilder, FArcScheduleBuilder& TickScheduleBuilder)
+{
+	Universe.AddResource(FNepUIGlobals());
+	
+	InitScheduleBuilder.AddSystem(&FNepUISystems::InitializeGlobals);
 }

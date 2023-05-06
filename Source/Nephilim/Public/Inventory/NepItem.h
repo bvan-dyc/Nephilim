@@ -1,8 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-//#include "UObject/StrongObjectPtr.h"
-//#include "Item/DataAsset/T2ItemDataAsset.h"
+#include "NepItemID.h"
 #include "Engine/NetSerialization.h"
 #include "NepItem.generated.h"
 
@@ -13,17 +12,23 @@ struct FNepItem : public FFastArraySerializerItem
 
 public:
     
-    //TStrongObjectPtr<const UT2ItemDataAsset> DataAsset;
-
     UPROPERTY(EditAnywhere)
-    const class UNepItemDataAsset* DataAsset;
+    const class UNepItemDataAsset* DataAsset = nullptr;
 
-    UPROPERTY(VisibleAnywhere)
-    uint64 ID;
+	UPROPERTY(VisibleAnywhere)
+	FNepItemID ID;
 
 public:
 
     FNepItem() = default;
+
+	void Reset()
+	{
+		DataAsset = nullptr;
+		ID.Reset();
+	}
+	
+	bool IsValid() const { return DataAsset && ID.IsValid(); }
     
 	//void PreReplicatedRemove(const struct FExampleArray& InArraySerializer);
 	//void PostReplicatedAdd(const struct FExampleArray& InArraySerializer);

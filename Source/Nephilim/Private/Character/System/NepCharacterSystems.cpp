@@ -7,6 +7,9 @@
 #include "Character/ActorComponent/NepCharacterComponent.h"
 #include "Character/DataAsset/NepCharacterMeshesDataAsset.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Inventory/NepInventory.h"
+#include "Inventory/ActorComponent/NepEquipmentComponent.h"
+#include "Inventory/DataAsset/NepItemDataAsset.h"
 
 void FNepCharacterSystems::OnCharacterCreated(FArcUniverse& Universe, FArcRes<FNepCharacterEvents> Events)
 {
@@ -22,7 +25,7 @@ void FNepCharacterSystems::OnCharacterCreated(FArcUniverse& Universe, FArcRes<FN
 		{
 			Data->Character = Character;
 			Data->CharacterConversation = Character->CharacterConversation;
-			Events->CharacterMeshesChangedEvents.Add(Entity);
+			Events->CharacterMeshesChangedEvents.AddUnique(Entity);
 		}
 	}
 }
@@ -46,9 +49,9 @@ void FNepCharacterSystems::UpdateCharacterMeshes(FArcUniverse& Universe, FArcRes
 				Data->DeleteAdditionalCharacterMeshes();
 
 				TArray<USkeletalMesh*> Meshes;
-				for (const UNepCharacterMeshesDataAsset* MeshCollection : Component->MeshCollections)
+				auto CollectMeshes = [&](const UNepCharacterMeshesDataAsset* MeshCollection)
 				{
-					if (!MeshCollection) { continue; }
+					if (!MeshCollection) { return; }
 					for (USkeletalMesh* Mesh : MeshCollection->MeshesToAdd)
 					{
 						Meshes.Add(Mesh);
@@ -56,7 +59,31 @@ void FNepCharacterSystems::UpdateCharacterMeshes(FArcUniverse& Universe, FArcRes
 					for (USkeletalMesh* Mesh : MeshCollection->MeshesToRemove)
 					{
 						Meshes.RemoveSingleSwap(Mesh);
-					}
+					}				
+				};
+				for (const UNepCharacterMeshesDataAsset* MeshCollection : Component->MeshCollections)
+				{
+					CollectMeshes(MeshCollection);
+				}
+
+				const UNepEquipmentComponent* EquipmentComponent = Character->GetConfig<UNepEquipmentComponent>();
+				UNepInventory* Inventory = UNepInventory::GetInventory(*Character);
+				if (EquipmentComponent && Inventory)
+				{
+					auto CollectItemMeshes = [&](const FNepItemID& ItemID)
+					{
+						FNepItem* Item = Inventory->GetItem(ItemID);
+						const UNepItemDataAsset* ItemDataAsset = Item ? Item->DataAsset : nullptr;
+						const UNepArmorItemConfig* ArmorConfig = ItemDataAsset ? ItemDataAsset->GetConfig<UNepArmorItemConfig>() : nullptr;
+						if (ArmorConfig)
+						{
+							CollectMeshes(ArmorConfig->MeshesDataAsset);
+						}
+					};
+
+					CollectItemMeshes(EquipmentComponent->HeadItem);
+					CollectItemMeshes(EquipmentComponent->BodyItem);
+					CollectItemMeshes(EquipmentComponent->LegsItem);
 				}
 
 				EObjectFlags Flags = EObjectFlags::RF_Transient | EObjectFlags::RF_DuplicateTransient;

@@ -2,6 +2,7 @@
 #include "ArcScheduleBuilder.h"
 #include "Character/NepCharacterSetup.h"
 #include "Interaction/NepInteractionSetup.h"
+#include "Inventory/NepInventorySetup.h"
 #include "Narrative/NepNarrativeSetup.h"
 #include "Time/NepTimeSetup.h"
 #include "UI/NepUISetup.h"
@@ -16,6 +17,7 @@ void UNepECSSetup::SetupECSForGame(FArcUniverse& Universe, UWorld& World, FArcSc
 	FNepCharacterSetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
 	FNepUISetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
 	FNepInteractionSetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
+	FNepInventorySetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
 	FNepNarrativeSetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
 }
 
@@ -27,6 +29,7 @@ void UNepECSSetup::SetupECSForServer(FArcUniverse& Universe, UWorld& World, FArc
 
 	FNepCharacterSetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
 	FNepInteractionSetup::SetupForServer(Universe, InitScheduleBuilder, TickScheduleBuilder);
+	FNepInventorySetup::SetupForServer(Universe, InitScheduleBuilder, TickScheduleBuilder);
 	FNepNarrativeSetup::Setup(Universe, InitScheduleBuilder, TickScheduleBuilder);
 }
 
@@ -36,4 +39,5 @@ void UNepECSSetup::SetupECSForEditor(FArcUniverse& Universe, UWorld& World, FArc
 		.AddStageAfter(TEXT("Nephilim_EventCleanUpStage"), FArcScheduleStage::DefaultStage);
 
 	FNepCharacterSetup::SetupForEditor(Universe, InitScheduleBuilder, TickScheduleBuilder);
+	FNepUISetup::SetupForEditor(Universe, InitScheduleBuilder, TickScheduleBuilder);
 }

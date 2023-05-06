@@ -1,5 +1,10 @@
 #include "UI/Resource/NepWidgetData.h"
 #include "ArcECSSubsystem.h"
+#include "UI/NepWidgetUpdateManager.h"
+
+FNepWidgetData::FNepWidgetData()
+    : WidgetUpdateManager(MakeShared<FNepWidgetUpdateManager>())
+{}
 
 FNepWidgetData* FNepWidgetData::Get(const UObject* context)
 {

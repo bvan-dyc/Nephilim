@@ -23,6 +23,9 @@ public:
 
 	UPROPERTY(EditAnywhere, ReplicatedUsing = "OnRep_MeshCollections")
 	TArray<const class UNepCharacterMeshesDataAsset*> MeshCollections;
+	
+	UPROPERTY(EditAnywhere, Instanced, Replicated)
+	class UNepInventory* Inventory;
 
 public:
 
@@ -30,7 +33,10 @@ public:
 	
 	virtual void AddComponentsToEntity(FArcUniverse& Universe, FArcEntityHandle& Entity) override;
 	virtual void RemoveComponentsFromEntity(FArcUniverse& Universe, FArcEntityHandle& Entity) override;
-
+	
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+	
 	UFUNCTION(Server, Reliable)
 	void Server_RemoveMeshes();
 	

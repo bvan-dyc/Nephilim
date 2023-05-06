@@ -1,15 +1,12 @@
 ﻿#include "UI/System/NepUISystems.h"
 #include "EngineUtils.h"
 #include "Blueprint/UserWidget.h"
+#include "UI/NepUIEvents.h"
+#include "UI/NepWidgetUpdateManager.h"
 #include "UI/DataAsset/NepUIGlobalsDataAsset.h"
-#include "UI/Widget/NepContainerInventoryWidget.h"
-#include "UI/Widget/NepEquipmentWidget.h"
 #include "UI/Widget/NepHUDWidget.h"
-#include "UI/Widget/NepInventoryWidget.h"
-#include "UI/Widget/NepTopBarWidget.h"
-#include "UI/Widget/Dialogue/NepConversationWidget.h"
 
-void FNepUISystems::InitializeUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIGlobals> UIGlobals, FArcRes<FNepWidgetData> WidgetData)
+void FNepUISystems::InitializeGlobals(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIGlobals> UIGlobals)
 {
 	TArray<UObject*> Assets;
 	EngineUtils::FindOrLoadAssetsByPath(TEXT("/Game/Globals"), Assets, EngineUtils::ATL_Regular);
@@ -20,7 +17,10 @@ void FNepUISystems::InitializeUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIG
 			*UIGlobals = UIGlobalsDataAsset->UIGlobals;
 		}
 	}
+}
 
+void FNepUISystems::CreateHUD(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIGlobals> UIGlobals, FArcRes<FNepWidgetData> WidgetData)
+{
 	if (UIGlobals->HUDWidget)
 	{
 		UNepHUDWidget* HUDWidget = CreateWidget<UNepHUDWidget>(CoreData->World.Get(), UIGlobals->HUDWidget);
@@ -32,10 +32,25 @@ void FNepUISystems::InitializeUI(FArcRes<FArcCoreData> CoreData, FArcRes<FNepUIG
 	}
 }
 
+void FNepUISystems::UpdateWidgets(FArcRes<FNepWidgetData> WidgetData)
+{
+	WidgetData->WidgetUpdateManager->NotifyQueuedUpdaters();
+	WidgetData->WidgetUpdateManager->ClearQueuedUpdatersAndEvents();
+}
+
 void FNepUISystems::HandleToggleUI(FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCharacterEvents> Events)
 {
 	if (!Events->bToggleUI) { return; }
 	Events->SetUIVisibilityCommand = !WidgetData->bUIVisible;
+	if (!WidgetData->bUIVisible)
+	{
+		WidgetData->WidgetUpdateManager->TriggerWidgetUpdateEvent(FNepUIEvent_ShowUI());
+		WidgetData->WidgetUpdateManager->TriggerWidgetUpdateEvent(FNepUIEvent_SetRightInventoryPanel { ENepRightInventoryPanel::Equipment });
+	}
+	else
+	{
+		WidgetData->WidgetUpdateManager->TriggerWidgetUpdateEvent(FNepUIEvent_HideUI());
+	}
 }
 
 void FNepUISystems::SetUIVisibility(FArcRes<FArcCoreData> CoreData, FArcRes<FNepWidgetData> WidgetData, FArcRes<FNepCharacterEvents> Events)
@@ -55,37 +70,6 @@ void FNepUISystems::SetUIVisibility(FArcRes<FArcCoreData> CoreData, FArcRes<FNep
 		else
 		{
 			PlayerController->SetInputMode(FInputModeGameOnly());
-		}
-	}
-	
-	UNepTopBarWidget* TopBar = WidgetData->TopBarWidget.Get();
-	UNepInventoryWidget* Inventory = WidgetData->InventoryWidget.Get();
-	UNepEquipmentWidget* Equipment = WidgetData->EquipmentWidget.Get();
-	UNepContainerInventoryWidget* Container = WidgetData->ContainerInventoryWidget.Get();
-	UNepConversationWidget* ConversationPanel = WidgetData->ConversationWidget.Get();
-	UNepCutsceneConversationWidget* CutscenePanel = WidgetData->CutsceneConversationWidget.Get();
-	
-	if (TopBar && Inventory && Equipment && Container)
-	{
-		if (WidgetData->bUIVisible)
-		{
-			TopBar->FadeIn();
-			Inventory->FadeIn();
-			if (Events->bShowContainer)
-			{
-				Container->FadeIn();
-			}
-			else
-			{
-				Equipment->FadeIn();
-			}
-		}
-		else
-		{
-			TopBar->FadeOut();
-			Inventory->FadeOut();
-			Equipment->FadeOut();
-			Container->FadeOut();
 		}
 	}
 }

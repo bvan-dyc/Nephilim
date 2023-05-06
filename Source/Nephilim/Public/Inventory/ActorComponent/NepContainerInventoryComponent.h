@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "ActorComponent/ArcBaseComponent.h"
-#include "Item/NepItem.h"
 #include "NepContainerInventoryComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FNepContainerDelegate);
@@ -20,20 +19,24 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FNepContainerDelegate OnClosedOnClient;
 
-protected:
-
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Instanced, Replicated)
 	class UNepInventory* Inventory;
-
-	//UPROPERTY(EditDefaultsOnly)
-	//TArray<FNepItem>
+	
+protected:
 
 	bool bIsOpened = false;
 
 public:
+
+	UNepContainerInventoryComponent();
 	
 	virtual void AddComponentsToEntity(FArcUniverse& Universe, FArcEntityHandle& Entity) override;
 	virtual void RemoveComponentsFromEntity(FArcUniverse& Universe, FArcEntityHandle& Entity) override;
+
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 //protected:
 

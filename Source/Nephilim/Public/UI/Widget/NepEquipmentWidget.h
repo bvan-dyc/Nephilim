@@ -26,18 +26,21 @@ private:
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	UWidgetAnimation* FadeOutAnimation;
 
-public:
-
-	void FadeIn();
-	void FadeOut();
+	bool bIsVisible = false;
+	
+	TSharedPtr<struct FNepWidgetUpdater> WidgetUpdater;
 
 protected:
 
 	virtual void NativeOnInitialized() override;
-	virtual void NativeConstruct() override;
 
 private:
 
-	void UpdateItems();
+	void Update();
+	
+	void FadeIn();
+	void FadeOut();
+
+	void HandleItemSlotClicked(int32 SlotIndex) const;
 	
 };

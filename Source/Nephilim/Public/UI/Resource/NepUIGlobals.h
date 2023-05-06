@@ -18,4 +18,7 @@ public:
     
     UPROPERTY(EditDefaultsOnly)
     TSubclassOf<class UUserWidget> CharacterInteractionIndicatorWidget = nullptr;
+    
+    UPROPERTY(EditDefaultsOnly)
+    TSubclassOf<class UNepItemSlotWidget> ItemSlotWidget = nullptr;
 };

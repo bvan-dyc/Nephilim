@@ -233,7 +233,7 @@ void FNepInteractionSystems::EvaluateLongInteractionConditionsOnClient(
 			{
 				if (!Proxy->EvaluateLongInteractionConditionsOnClient(Universe, *InteractingEntity, *InteractableEntity))
 				{
-					Proxy->Server_EndLongInteraction();
+					Proxy->EndLongInteractionOnClient();
 					Events->LongInteractionsToEndOnClient.Add(Proxy);
 				}
 			}

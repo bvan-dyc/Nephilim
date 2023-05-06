@@ -9,11 +9,13 @@
 #include "Interaction/Component/NepInteractor.h"
 #include "Interaction/Interactions/NepPossessInteraction.h"
 #include "Interaction/Interactions/NepTalkInteraction.h"
+#include "Inventory/Component/NepItemContainer.h"
 #include "Net/UnrealNetwork.h"
 
 UNepCharacterComponent::UNepCharacterComponent()
 {
     SetIsReplicatedByDefault(true);
+    bReplicateUsingRegisteredSubObjectList = true;
 }
 
 void UNepCharacterComponent::AddComponentsToEntity(FArcUniverse& Universe, FArcEntityHandle& Entity)
@@ -23,6 +25,11 @@ void UNepCharacterComponent::AddComponentsToEntity(FArcUniverse& Universe, FArcE
     
     Universe.GetCommands().AddComponent(Entity, FNepCharacterData(Data));
     Universe.GetCommands().AddComponent(Entity, FNepInteractor());
+
+    if (Inventory)
+    {
+        Universe.GetCommands().AddComponent(Entity, FNepItemContainer(*Inventory));
+    }
     
     if (!Universe.HasComponent<FNepInteractable>(Entity))
     {
@@ -41,7 +48,27 @@ void UNepCharacterComponent::AddComponentsToEntity(FArcUniverse& Universe, FArcE
 void UNepCharacterComponent::RemoveComponentsFromEntity(FArcUniverse& Universe, FArcEntityHandle& Entity)
 {
     Universe.GetCommands().RemoveComponent<FNepCharacterData>(Entity);
+    Universe.GetCommands().RemoveComponent<FNepInteractor>(Entity);
+    Universe.GetCommands().RemoveComponent<FNepItemContainer>(Entity);
     Universe.GetCommands().RemoveComponent<FNepInteractable>(Entity);
+}
+
+void UNepCharacterComponent::OnRegister()
+{
+    Super::OnRegister();
+    if (Inventory)
+    {
+        AddReplicatedSubObject(Inventory);
+    }
+}
+
+void UNepCharacterComponent::OnUnregister()
+{
+    Super::OnUnregister();
+    if (Inventory)
+    {
+        RemoveReplicatedSubObject(Inventory);
+    }
 }
 
 void UNepCharacterComponent::Server_RemoveMeshes_Implementation()
@@ -61,6 +88,7 @@ void UNepCharacterComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UNepCharacterComponent, MeshCollections);
+	DOREPLIFETIME(UNepCharacterComponent, Inventory);
     
 	//FDoRepLifetimeParams SharedParams;
 	//DOREPLIFETIME_WITH_PARAMS_FAST(UNepCharacterDataConfig, MeshCollections, SharedParams);
@@ -75,4 +103,3 @@ void UNepCharacterComponent::OnRep_MeshCollections()
         Events->CharacterMeshesChangedEvents.AddUnique(GetEntityHandle());
     }
 }
-

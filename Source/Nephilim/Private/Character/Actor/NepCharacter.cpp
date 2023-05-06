@@ -54,6 +54,14 @@ ANepCharacter::ANepCharacter()
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
 
+ANepCharacter* ANepCharacter::GetLocalCharacter(const UObject* Context)
+{
+	UWorld* World = Context ? Context->GetWorld() : nullptr;
+	if (!World || World->IsNetMode(ENetMode::NM_DedicatedServer)) { return nullptr; }
+	APlayerController* PlayerController = World->GetFirstPlayerController();
+	return PlayerController ? Cast<ANepCharacter>(PlayerController->GetCharacter()) : nullptr;
+}
+
 void ANepCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
@@ -122,7 +130,7 @@ void ANepCharacter::Server_Interact_Implementation(AActor* InteractableActor, in
 	UWorld* World = GetWorld();
 	if (!Universe || !World) { return; }
 
-    FArcEntityHandle* InteractorEntity = ECSSubsystem->FindEntityForActor(*this);
+	FArcEntityHandle* InteractorEntity = ECSSubsystem->FindEntityForActor(*this);
 	FArcEntityHandle* InteractableEntity = ECSSubsystem->FindEntityForActor(*InteractableActor);
 	FNepInteractionEvents* Events = Universe->GetResource<FNepInteractionEvents>();
 	if (!InteractorEntity || !InteractableEntity || !Events) { return; }

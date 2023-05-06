@@ -10,6 +10,9 @@ class NEPHILIM_API UNepContainerInventoryWidget : public UUserWidget
 	GENERATED_BODY()
 
 private:
+	
+	UPROPERTY(meta = (BindWidget))
+	class UNepInventoryWidget* InventoryWidget = nullptr;
 
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	UWidgetAnimation* FadeInAnimation;
@@ -17,14 +20,29 @@ private:
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	UWidgetAnimation* FadeOutAnimation;
 
+	UPROPERTY()
+	TObjectPtr<class ANepInventoryInteractionProxy> InteractionProxy = nullptr;
+
+	TWeakObjectPtr<class UNepInventory> CurrentInventory;
+	
+	bool bIsVisible = false;
+	
+	TSharedPtr<struct FNepWidgetUpdater> WidgetUpdater;
+
 public:
 
-	void FadeIn();
-	void FadeOut();
+	void InitializeFromProxy(class ANepInventoryInteractionProxy& Proxy);
 
 protected:
 
-	void NativeOnInitialized() override;
-	void NativeConstruct() override;
+	virtual void NativeOnInitialized() override;
+
+private:
 	
+	void Update();
+	
+	void FadeIn();
+	void FadeOut();
+
+	void HandleItemClicked(const struct FNepItemID& ItemID) const;
 };

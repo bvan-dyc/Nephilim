@@ -12,7 +12,7 @@ struct FNepItemArray : public FFastArraySerializer
 
 public:
 
-    UPROPERTY()
+    UPROPERTY(EditAnywhere)
     TArray<FNepItem> Items;
 
 public:

@@ -16,15 +16,20 @@ private:
 	
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	UWidgetAnimation* FadeOutAnimation;
-
-public:
-
-	void FadeIn();
-	void FadeOut();
+	
+	bool bIsVisible = false;
+	
+	TSharedPtr<struct FNepWidgetUpdater> WidgetUpdater;
 
 protected:
 
 	virtual void NativeOnInitialized() override;
-	virtual void NativeConstruct() override;
+
+private:
+
+	void Update();
+	
+	void FadeIn();
+	void FadeOut();
 	
 };

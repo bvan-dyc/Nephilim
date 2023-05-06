@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-//#include "ArcEntityHandle.h"
 #include "NepItemDataAsset.generated.h"
 
 UCLASS()
@@ -17,19 +16,16 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	class UTexture2D* Icon;
-	
 
-	/*UPROPERTY(EditDefaultsOnly, Instanced)
-	TArray<const class UT2ItemComponentConfig*> ComponentConfigs;
+	UPROPERTY(EditDefaultsOnly, Instanced)
+	TArray<const class UNepItemConfig*> ItemConfigs;
 
 public:
 	
-	FArcEntityHandle CreateItemEntity(class FArcWorld& World) const;
-
 	template<typename T>
 	const T* GetConfig() const
 	{
-		for (const class UT2ItemComponentConfig* Config : ComponentConfigs)
+		for (const class UNepItemConfig* Config : ItemConfigs)
 		{
 			if (const T* CastedConfig = Cast<T>(Config))
 			{
@@ -37,6 +33,5 @@ public:
 			}
 		}
 		return nullptr;
-	}*/
-
+	}
 };

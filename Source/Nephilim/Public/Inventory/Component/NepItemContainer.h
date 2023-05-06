@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/NepInventory.h"
+#include "Inventory/NepInventory.h"
 #include "NepItemContainer.generated.h"
 
 USTRUCT()
@@ -12,5 +12,10 @@ struct FNepItemContainer
 public:
     
     TWeakObjectPtr<UNepInventory> Inventory;
+
+public:
+    
+    FNepItemContainer() = default;
+    explicit FNepItemContainer(class UNepInventory& InInventory);
 
 };

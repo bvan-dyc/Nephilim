@@ -22,7 +22,15 @@ void ANepLongInteractionProxy::InitializeProxy(AActor& InInteractorActor, AActor
 void ANepLongInteractionProxy::TornOff()
 {
 	Super::TornOff();
-	
+
+	// If the interaction was ended by the client just destroy the actor here. The event has already been sent and handled on the client.
+	if (bHasInteractionEndedOnClient)
+	{
+		Destroy();
+		return;
+	}
+
+	// If the interaction was ended by the server we send an event here so that interaction end will be properly handled on the client.
 	UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
 	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
 	FNepInteractionEvents* Events = Universe ? Universe->GetResource<FNepInteractionEvents>() : nullptr;
@@ -38,16 +46,13 @@ void ANepLongInteractionProxy::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 
 	DOREPLIFETIME(ANepLongInteractionProxy, InteractorActor);
 	DOREPLIFETIME(ANepLongInteractionProxy, InteractableActor);
+	DOREPLIFETIME(ANepLongInteractionProxy, InteractionIndex);
 }
 
-void ANepLongInteractionProxy::Server_EndLongInteraction_Implementation()
+void ANepLongInteractionProxy::EndLongInteractionOnClient()
 {
-	UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
-	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
-	if (FNepInteractionEvents* Events = Universe ? Universe->GetResource<FNepInteractionEvents>() : nullptr)
-	{
-		Events->LongInteractionsToEndOnServer.Add(this);
-	}
+	bHasInteractionEndedOnClient = true;
+	Server_EndLongInteraction();
 }
 
 FNepInteraction* ANepLongInteractionProxy::GetInteraction() const
@@ -60,10 +65,25 @@ FNepInteraction* ANepLongInteractionProxy::GetInteraction() const
 	return Interactable && Interactable->Interactions.IsValidIndex(InteractionIndex) ? Interactable->Interactions[InteractionIndex].Get() : nullptr;
 }
 
+void ANepLongInteractionProxy::Server_EndLongInteraction_Implementation()
+{
+	UArcECSSubsystem* ECSSubsystem = UWorld::GetSubsystem<UArcECSSubsystem>(GetWorld());
+	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
+	if (FNepInteractionEvents* Events = Universe ? Universe->GetResource<FNepInteractionEvents>() : nullptr)
+	{
+		Events->LongInteractionsToEndOnServer.Add(this);
+	}
+}
+
+bool ANepLongInteractionProxy::IsClientOnlyProxy() const
+{
+	return IsNetMode(ENetMode::NM_Client) && GetLocalRole() == ENetRole::ROLE_AutonomousProxy;
+}
+
 void ANepLongInteractionProxy::OnRep_Init()
 {
-	if (!InteractorActor || !InteractableActor) { return; }
-	
+	if (!InteractorActor || !InteractableActor || InteractionIndex == INDEX_NONE) { return; }
+
 	UArcECSSubsystem* ECSSubsystem = UArcECSSubsystem::Get(this);
 	FArcUniverse* Universe = ECSSubsystem ? &ECSSubsystem->GetUniverse() : nullptr;
 	if (!Universe) { return; }
